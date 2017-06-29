@@ -1,0 +1,171 @@
+#Graph
+
+ #Delete existing index
+ DELETE chapter10
+ 
+ #Mapping
+ PUT chapter10
+ {
+   "settings": {
+     "number_of_shards": 1,
+     "number_of_replicas": 0
+   },
+   "mappings": {
+     "order": {
+       "properties": {
+         "line_items": {
+           "type": "keyword"
+         },
+         "user_id": {
+           "type": "keyword"
+         },
+         "order_creation_date" : {
+           "type": "date"
+         }
+       }
+     }
+   }
+ }
+
+PUT chapter10/order/1
+ {
+   "user_id": "1",
+   "line_items": [
+     "icecream",
+     "chocolate",
+     "beer",
+     "chips",
+     "soda"
+   ]
+ }
+ 
+ PUT chapter10/order/2
+ {
+   "user_id": "2",
+   "line_items": [
+     "icecream",
+     "banana",
+     "avocado",
+     "soda",
+     "peanut butter"
+   ]
+ }
+  
+ PUT chapter10/order/3
+ {
+   "user_id": "3",
+   "line_items": [
+     "icecream",
+     "chocolate",
+     "soda",
+     "chips"
+   ]
+ }
+ 
+ PUT chapter10/order/4
+ {
+   "user_id": "4",
+   "line_items": [
+     "icecream",
+     "banana",
+     "bread",
+     "chips"
+   ]
+
+POST chapter10/_search
+ {
+   "size": 0,
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "term": {
+             "line_items": "soda"
+           }
+         },
+         {
+           "term": {
+             "line_items": "chips"
+           }
+         }
+       ]
+     }
+   },
+   "aggs": {
+     "recommendations": {
+       "significant_terms": {
+         "field": "line_items",
+         "min_doc_count": 1
+       }
+     }
+   }
+ }
+
+
+#Alerting
+
+PUT _xpack/watcher/watch/order_count
+ {
+   "trigger": {
+     "schedule": {
+       "interval": "30m"
+     }
+   },
+   "input": {
+     "search": {
+       "request": {
+         "indices": [
+           "chapter10"
+         ],
+         "types": [
+           "order"
+         ],
+         "body": {
+           "query": {
+             "range": {
+               "order_creation_date": {
+                 "gte": "now-1m",
+                 "time_zone": "-07:00"
+               }
+             }
+           }
+         }
+       }
+     }
+   },
+   "condition": {
+     "compare": {
+       "ctx.payload.hits.total": {
+         "lte": "5"
+       }
+     }
+   },
+   "actions": {
+     "index_payload": {
+       "index": {
+         "index": "order_alerts",
+         "doc_type": "lte_5",
+         "execution_time_field" : "alert_timestamp"
+       }
+     }
+   }
+ }
+
+
+PUT chapter10/order/5
+ {
+   "user_id": "5",
+   "line_items": [
+     "icecream",
+     "banana",
+     "bread",
+     "chips"
+   ],
+   "order_creation_date": "2017-04-21T16:06:00-07:00"
+ }
+
+POST _xpack/watcher/watch/order_count/_execute
+
+POST order_alerts/_search
+
+POST _xpack/watcher/watch/order_count/_deactivate

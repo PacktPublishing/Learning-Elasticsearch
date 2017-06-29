@@ -1,0 +1,60 @@
+#Memory Configuration
+
+http://127.0.0.1:9200/_nodes/elasticsearch1/stats/jvm?human&pretty
+
+
+#Types of Nodes
+
+http://127.0.0.1:9200/_cat/nodes?v
+
+http://192.168.0.1:9200/_cluster/health?pretty
+
+
+#X-Pack
+
+curl -XPUT -u elastic 'http://127.0.0.1:9200/_xpack/license?acknowledge=true' -H "Content-Type: application/json" -d @license.json
+
+# Cluster API 
+GET /_cluster/stats/?human&pretty
+
+
+#Monitoring Indices
+
+GET /chapter6/_stats?human&pretty
+
+GET /chapter6/_stats/indexing
+
+
+#Thread Pools
+
+GET /_cat/thread_pool?v&h=name,active,queue,rejected,completed
+
+
+#Debug Logs
+PUT /_cluster/settings
+ {
+   "transient": {
+     "logger._root": "DEBUG"
+   }
+ }
+
+
+#Slow logs
+
+ PUT /chapter6/_settings
+ {
+   "index": {
+     "search.slowlog.level": "info",
+     "search.slowlog.threshold.query.debug": "5s"
+   }
+ }
+
+ PUT /chapter6/_settings
+ {
+   "index": {
+     "indexing.slowlog.level": "info",
+     "indexing.slowlog.source": "500",
+     "indexing.slowlog.threshold.index.debug": "5s"
+   }
+ }
+

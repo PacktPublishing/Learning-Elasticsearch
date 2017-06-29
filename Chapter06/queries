@@ -1,0 +1,892 @@
+#Querying Elasticsearch
+POST chapter6/product/_search 
+{
+   "query": {
+     "term": {
+       "product_name" : "jeans"
+     }
+   }
+ }
+
+POST chapter5,chapter6/product,product_reviews/_search 
+{
+   "query": {
+     "term": {
+       "product_name" : "jeans"
+     }
+   }
+ }
+
+#Sample Data
+
+#Delete existing index if any
+ DELETE chapter6
+ 
+ #Mapping
+ PUT chapter6
+ {
+   "settings": {},
+   "mappings": {
+     "product": {
+       "properties": {
+         "product_name": {
+           "type": "text",
+           "analyzer": "english"
+         },
+         "description" : {
+           "type": "text",
+           "analyzer": "english"
+         }
+       }
+     }
+   }
+ }
+
+#Index Documents
+ PUT chapter6/product/1
+ {
+   "product_name": "Men's High Performance Fleece Jacket",
+   "description": "Best Value. All season fleece jacket",
+   "unit_price": 79.99,
+   "reviews": 250,
+   "release_date": "2016-08-16"
+ } 
+ 
+ PUT chapter6/product/2
+ {
+   "product_name": "Men's Water Resistant Jacket",
+   "description": "Provides comfort during biking and hiking",
+   "unit_price": 69.99,
+   "reviews": 5,
+   "release_date": "2017-03-02"
+ } 
+ 
+ PUT chapter6/product/3
+ {
+   "product_name": "Women's wool Jacket",
+   "description": "Helps you stay warm in winter",
+   "unit_price": 59.99,
+   "reviews": 10,
+   "release_date": "2016-12-15"
+ }
+
+
+#Basic Query (Finding exact value)
+POST chapter6/product/_search 
+{
+   "query": {
+     "term": {
+       "product_name" : "jacket"
+     }
+   }
+ }
+
+POST chapter6/_search 
+{
+   "query": {
+     "terms": {
+       "product_name" : ["jacket","fleece"]
+     }
+   }
+ }
+
+#Pagination
+ POST chapter6/_search
+ {
+   "from" : 0,
+   "size" : 10,
+   "query" : {
+     "match" : { 
+       "product_name" : "wool jacket"
+     }
+   }
+ }
+
+#Sort
+POST chapter6/_search
+ {
+   "from": 0,
+   "size": 10,
+   "query": {
+     "match": {
+       "product_name": "jacket"
+     }
+   },
+   "sort": {
+     "unit_price": {
+       "order": "desc"
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "from": 0,
+   "size": 10,
+   "query": {
+     "match": {
+       "product_name": "jacket"
+     }
+   },
+   "sort": [
+     {
+       "unit_price": {
+         "order": "desc"
+       }
+     },
+     {
+       "reviews": {
+         "order": "desc"
+       }
+     }
+   ]
+ }
+
+#Selecting 
+POST chapter6/product/_search
+ {
+   "_source": [
+     "product_name"
+   ],
+   "query": {
+     "term": {
+       "product_name": "jacket"
+     }
+   }
+ }
+
+POST chapter6/product/_search
+ {
+   "_source": [
+     "pr*"
+   ],
+   "query": {
+     "term": {
+       "product_name": "jacket"
+     }
+   }
+ }
+
+POST chapter6/product/_search 
+{
+   "_source": [], 
+   "query": {
+     "match_all": {}
+   },
+   "script_fields": {
+     "price_with_tax": {
+       "script": {
+         "inline" : "params['_source']['unit_price'] * 1.1"
+       }
+     }
+   }
+ }
+
+#Querying Based On Range
+POST chapter6/_search 
+{
+   "query": {
+     "range": {
+       "unit_price": {
+         "gt": 50,
+         "lte": 100
+       }
+     }
+   }
+ }
+
+POST chapter6/_search
+{
+   "query": {
+     "range": {
+       "release_date": {
+         "gt": "2017-01-01",
+         "lte": "now"
+       }
+     }
+   }
+ }
+
+#Handling dates
+POST chapter6/_search
+ {
+   "query": {
+     "range": {
+       "release_date": {
+         "gt": "now-1h"
+       }
+     }
+   }
+ }
+
+POST chapter6/_search 
+{
+   "query": {
+     "range": {
+       "release_date": {
+         "gt": "2017-02-11 20:00:00||+1M"
+       }
+     }
+   }
+ }
+
+#Analyzed versus Non-analyzed Fields
+
+GET _analyze?analyzer=standard&text=Red+Gala+Apple
+
+POST chapter6/fruit/_search
+ {
+   "query": {
+     "term": {
+       "title": "apple"
+     }
+   }
+ }
+
+POST chapter6/fruit/_search
+ {
+   "query": {
+     "term": {
+       "title.keyword": "apple"
+     }
+   }
+ }
+
+POST chapter6/fruit/_search
+ {
+   "query": {
+     "term": {
+       "title.keyword": "Red Gala Apple"
+     }
+   }
+ }
+
+#Term and Match Query
+
+POST chapter6/product/_search
+ {
+   "query": {
+     "term": {
+       "product_name": "Women's wool Jacket"
+     }
+   }
+ }
+
+POST chapter6/product/_search
+ {
+   "query": {
+     "match": {
+       "product_name": "Women's wool Jacket"
+     }
+   }
+ }
+
+POST chapter6/product/_search
+ {
+   "query": {
+     "match": {
+       "product_name": {
+         "query": "Women's wool Jacket",
+         "operator": "and"
+       }
+     }
+   }
+ }
+
+#Match Phrase Query
+
+#Match Phrase
+ GET chapter6/_search
+ {
+   "query": {
+     "match_phrase": {
+       "description": "All season jacket"
+     }
+   }
+ }
+
+#Match Phrase
+ GET chapter6/_search
+ {
+   "query": {
+     "match_phrase": {
+       "description": {
+         "query": "All season jacket",
+         "slop": 1
+       }
+     }
+   }
+ }
+
+#Prefix and Match Phrase Prefix Query
+
+#Prefix
+ GET chapter6/_search
+ {
+   "query": {
+     "prefix": {
+       "product_name": "ja"
+     }
+   }
+ }
+
+#Match Phrase Prefix
+ GET chapter6/_search
+ {
+   "query": {
+     "match_phrase_prefix": {
+       "product_name": {
+         "query": "Men's High Pe",
+         "max_expansions": 10   
+       }
+     }
+   }
+ }
+
+#Wildcard and Regular Expression Query
+
+#Wildcard
+ GET chapter6/product/_search
+ {
+   "query": {
+     "wildcard" : {
+       "product_name" : "j*e?"
+     }
+   }
+ }
+
+#Wildcard
+ GET chapter6/product/_search
+ {
+   "query": {
+     "regexp" : {
+       "product_name" : "jacke."
+     }
+   }
+ }
+
+#Exists and Missing Queries
+
+#Exists
+ GET chapter6/product/_search
+ {
+   "query": {
+     "exists" : {
+       "field" : "reviews"
+     }
+   }
+ }
+
+#Missing
+ GET chapter6/product/_search
+ {
+     "query": {
+         "bool": {
+             "must_not": {
+                 "exists": {
+                     "field": "reviews"
+                 }
+             }
+         }
+     }
+ }
+
+
+#Using more than one query
+
+select * from Product where product_name like '%jacket%' and unit_price < 100
+
+POST chapter6/_search
+{
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "match": {
+             "product_name": "jacket"
+           }
+         },
+         {
+           "range": {
+             "unit_price": {
+               "lt": "100"
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "query": {
+     "bool": {
+       "should": [ # or
+         {
+           "match": {
+             "product_name": {
+               "query": "Water Resistant Jacket",
+               "operator": "and"
+             }
+           }
+         },
+         {
+           "bool": {
+             "must": [ # and
+               {
+                 "match": {
+                   "product_name": {
+                     "query": "Performance Fleece",
+                     "operator": "and"
+                   }
+                 }
+               },
+               {
+                 "range": {
+                   "unit_price": {
+                     "lte": "100"
+                   }
+                 }
+               }
+             ]
+           }
+         }
+       ]
+     }
+   }
+ }
+
+#Routing
+
+POST chapter6/order/_search?routing=user1 
+{
+   "query": {
+     "match": {
+       "shipping_status": "shipped"
+     }
+   }
+ }
+
+
+#Debugging search query
+
+GET chapter6/product/_mapping
+
+GET _analyze?analyzer=english&text=Men's+Performance+Jacket
+
+POST chapter6/_search?explain
+ {
+   "query": {
+     "match": {
+       "description" : "hiking"
+     }
+   }
+ }
+
+#Relevance
+
+POST chapter6/_search
+ {
+   "query": {
+     "term": {
+       "product_name" : "jacket"
+     }
+   }
+ }
+
+
+#Queries versus Filters
+
+POST chapter6/_search
+ {
+   "query": {
+     "constant_score": {
+       "filter": {
+         "term" : {
+           "product_name" : "wool"
+         }
+       }
+     }
+   }
+ }
+
+
+POST chapter6/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "term": {
+             "product_name": "jacket"
+           }
+         },
+         {
+           "constant_score": {
+             "filter": {
+               "range": {
+                 "unit_price": {
+                   "lt": "100"
+                 }
+               }
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+#How to boost relevance based on single field
+
+POST chapter6/_search
+ {
+   "query": {
+     "function_score": { 
+       "query": { 
+         "match": {
+           "product_name" : "jacket"
+         }
+       },
+       "field_value_factor": { 
+         "field": "reviews" 
+       }
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "query": {
+     "function_score": {
+       "query": {
+         "match": {
+           "product_name": {
+             "query": "jacket"
+           }
+         }
+       },
+       "field_value_factor": {
+         "field": "reviews",
+         "factor": "0.25"
+       }
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "query": {
+     "function_score": {
+       "query": {
+         "match": {
+           "product_name": {
+             "query": "jacket"
+           }
+         }
+       },
+       "field_value_factor": {
+         "field": "reviews",
+         "modifier": "log1p"
+       }
+     }
+   }
+ }
+ 
+#How to boost score based on queries 
+
+POST chapter6/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "match": {
+             "product_name": "jacket"
+           }
+         }
+       ],
+       "should": [
+         {
+           "range": {
+             "unit_price": {
+               "lt": 100
+             }
+           }
+         },
+         {
+           "range": {
+             "reviews": {
+               "gte": 25
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "match": {
+             "product_name": "jacket"
+           }
+         }
+       ],
+       "should": [
+         {
+           "range": {
+             "unit_price": {
+               "lt": 100,
+               "boost": 0.5
+             }
+           }
+         },
+         {
+           "range": {
+             "reviews": {
+               "gte": 25,
+               "boost": 2
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+#How to boost relevance using decay functions
+
+POST chapter6/_search
+ {
+   "query" : {
+     "bool": {
+       "should": [
+         {
+           "range": {
+             "release_date": {
+               "gte": "now/y",
+               "boost": 1
+             }
+           }
+         },
+         {
+           "range": {
+             "release_date": {
+               "gte": "now-1y/y",
+               "lte": "now/y", 
+               "boost": "0.5"
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "query": {
+     "function_score": {
+       "functions": [
+         {
+           "gauss": {
+             "release_date": {
+               "origin": "now",
+               "scale": "180d"
+             }
+           }
+         }
+       ]
+     }
+   }
+ } 
+
+POST chapter6/_search
+{
+  "query": {
+    "function_score": {
+      "functions": [
+        {
+          "gauss": {
+            "unit_price": {
+              "origin": "50",
+              "scale": "15"
+            }
+          }
+        },
+        {
+          "gauss": {
+            "release_date": {
+              "origin": "now",
+              "scale": "180d"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+POST chapter6/_search
+ {
+   "query": {
+     "function_score": {
+       "query": {
+         "match": {
+           "product_name": {
+             "query": "jacket"
+           }
+         }
+       },
+       "functions": [
+         {
+           "gauss": {
+             "unit_price": {
+               "origin": "50",
+               "scale": "15"
+             }
+           },
+           "weight": 1
+         },
+         {
+           "gauss": {
+             "release_date": {
+               "origin": "now",
+               "scale": "180d"
+             }
+           },
+           "weight": 2
+         }
+       ]
+     }
+   }
+ }
+
+#Rescoring
+
+POST chapter6/_search
+ {
+   "query": {
+     "match": {
+       "product_name": {
+         "query": "apple"
+       }
+     }
+   },
+   "rescore": {
+     "window_size": 10,
+     "query": {
+       "rescore_query": {
+         "function_score": {
+           "script_score": {
+             "script": {
+               "inline": "Math.log(params['_source']['reviews'])"
+             }
+           }
+         }
+       },
+       "query_weight": 0.5,
+       "rescore_query_weight": 1.0
+     }
+   }
+ }
+
+#Searching for same value across multiple fields 
+
+#Multi Match
+ GET chapter6/_search
+ {
+   "query": {
+     "multi_match": {
+       "query": "biking jacket",
+       "fields": [
+         "product_name",
+         "description"
+       ],
+       "type": "best_fields"
+     }
+   }
+ }
+
+#Multi Match
+POST chapter6/_search
+{
+   "query": {
+     "multi_match": {
+       "query": "biking jacket",
+       "fields": [
+         "product_name",
+         "description"
+       ],
+       "tie_breaker": 0.2
+     }
+   }
+ }
+
+POST chapter6/_search
+ {
+   "query": {
+     "multi_match": {
+       "query": "biking jacket",
+       "fields": [
+         "product_name^2",
+         "description"
+       ]
+     }
+   }
+ }
+
+#Multi Match (Best Fields)
+POST chapter6/_search
+ {
+   "query": {
+     "multi_match": {
+       "query": "jacket",
+       "fields": [
+         "product_name",
+         "description"
+       ],
+       "type": "best_fields",
+       "analyzer" : "english"
+     }
+   }
+ }
+
+#Multi Match (Most Fields)
+POST chapter6/_search
+ {
+   "query": {
+     "multi_match": {
+       "query": "jacket",
+       "fields": [
+         "product_name",
+         "description"
+       ],
+       "type": "most_fields",
+       "analyzer" : "english"
+     }
+   }
+ }
+
+
+#Multi Match (Cross Fields)
+POST chapter6/_search
+ {
+   "query": {
+     "multi_match": {
+       "query": "jacket",
+       "fields": [
+         "product_name",
+         "description"
+       ],
+       "type": "cross_fields",
+       "analyzer" : "english"
+     }
+   }
+ }

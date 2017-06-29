@@ -1,0 +1,843 @@
+#Sample Data
+
+PUT chapter7/product/1
+{ "product_name": "Apple iPhone 7"}
+
+PUT chapter7/product/2
+{ "product_name": "Apple iPhone Lightning Cable" }
+
+PUT chapter7/product/3
+{ "product_name": "Apple iPhone 6"}
+
+PUT chapter7/product/4
+{ "product_name": "Samsung Galaxy S7" }
+
+PUT chapter7/product/5
+{ "product_name": "Samsung Galaxy S6" }
+As we progress through 
+
+#Correcting typo's and spelling mistakes
+
+#Fuzzy Query
+ POST chapter7/_search
+ {
+   "query": {
+     "fuzzy": {
+       "product_name": "samsund"
+     }
+   }
+ }
+
+#Fuzzy Match Query
+ POST chapter7/_search
+ {
+   "query": {
+     "match": {
+       "product_name": {
+         "query" : "samsund galazy",
+         "fuzziness": "AUTO",
+         "operator": "and"
+       }
+     }
+   }
+ }
+
+#Term Suggester 
+POST chapter7/_search 
+{
+   "suggest" : {
+     "term_suggester" : {
+       "text" : "samsund",
+       "term" : {
+         "field" : "product_name"
+       }
+     }
+   }
+ }
+
+#Term Suggester 
+POST chapter7/_search
+ {
+   "suggest" : {
+     "term_suggester" : {
+       "text" : "samsundcd",
+       "term" : {
+         "field" : "product_name"
+       }
+     }
+   }
+ }
+
+#Term Suggester with match query
+POST chapter7/_search 
+{
+   "query" : {
+     "match" : {
+       "product_name" : "iphone"
+     }
+   },
+   "suggest" : {
+     "term_suggester" : {
+       "text" : "samsundd",
+       "term" : {
+         "field" : "product_name"
+       }
+     }
+   }
+ }
+
+#More than one suggester
+POST chapter7/_search
+ {
+   "suggest" : {
+     "suggester1" : {
+       "text" : "samsund",
+       "term" : {
+         "field" : "_all"
+       }
+     },
+     "suggester2" : {
+       "text" : "iphon",
+       "term" : {
+         "field" : "_all"
+       }
+     }
+   }
+ }
+
+#Phrase Suggester 
+POST chapter7/_search 
+ {
+   "suggest" : {
+     "term_suggester" : {
+       "text" : "samsund galaxy",
+       "phrase" : {
+         "field" : "title"
+       }
+     }
+   }
+ }
+
+ #Phrase Suggest with max error 2
+ POST chapter7/_search 
+ {
+   "suggest" : {
+     "term_suggester" : {
+       "text" : "samsund galaxh",
+       "phrase" : {
+         "field" : "title",
+         "max_errors" : 2
+       }
+     }
+   }
+ }
+
+
+#Collate
+POST chapter7/_search
+ {
+   "suggest": {
+     "my_suggestion": {
+       "text": "samsund galaxh",
+       "phrase": {
+         "field": "title",
+         "max_errors": 2,
+         "collate": {
+           "query": {
+             "inline": {
+               "match_phrase": {
+                 "{{field_name}}": {
+                   "query": "{{suggestion}}",
+                   "slop" : 1
+                 }
+               }
+             }
+           },
+           "params": {
+             "field_name": "title"
+           },
+           "prune": true
+         }
+       }
+     }
+   }
+ }
+
+#Implementing Auto-Complete Feature
+
+#Delete existing index
+DELETE chapter7
+
+#Mapping for Completion 
+PUT chapter7
+ {
+   "settings": {},
+   "mappings": {
+     "product": {
+       "properties": {
+         "product_name": {
+           "type": "text",
+           "copy_to": "title_suggest"
+         },
+         "product_suggest": {
+           "type": "completion"
+         }
+       }
+     }
+   }
+ }
+
+#Sample data
+POST chapter7/product/_bulk 
+{ "index": {}} 
+{ "product_name": "Apple iPhone 7"} 
+{ "index": {}}
+{ "product_name": "Apple iPhone Lightning Cable" }
+{ "index": {}} 
+{ "product_name": "Apple iPhone 6"} 
+{ "index": {}} 
+{ "product_name": "Samsung Galaxy S7" }
+{ "index": {}} 
+{ "product_name": "Samsung Galaxy S6" }
+Now that we have set mapping and indexed 
+
+#Completion
+POST chapter7/_search
+ {
+   "suggest": {
+     "my_suggestion": {
+       "prefix": "i",
+       "completion": {
+         "field": "product_suggest"
+       }
+     }
+   }
+ }
+
+#Implementing More like this feature
+
+#More like this based on text
+ POST chapter7/_search
+ {
+     "query": {
+         "more_like_this" : {
+             "fields" : ["product_name"],
+             "like" : "iphone",
+             "min_doc_freq" : 1,
+             "min_term_freq" : 1,
+             "max_query_terms" : 12
+         }
+     }
+ }
+
+#More like this based on existing document
+ POST chapter7/_search
+ {
+   "query": {
+     "more_like_this": {
+       "fields": [
+         "product_name"
+       ],
+       "like": [
+         {
+           "_index": "chapter7",
+           "_type": "product",
+           "_id": "1"
+         }
+       ],
+       "min_doc_freq": 1,
+       "min_term_freq": 1,
+       "max_query_terms": 12
+     }
+   }
+ }
+
+
+#Highlighting
+
+#Highlighting
+POST chapter7/_search
+ {
+   "query": {
+     "match": {
+       "title": {
+         "query": "samsung"
+        
+       }
+     }
+   },
+   "highlight": {
+         "fields" : {
+             "title" : {}
+         }
+     }
+ }
+
+#Highlight with tags
+POST chapter7/_search
+ {
+   "query": {
+     "match": {
+       "product_name": {
+         "query": "samsung"
+        }
+     }
+   },
+   "highlight": {
+         "pre_tags" : ["<tag1>"],
+         "post_tags" : ["</tag1>"], 
+         "fields" : {
+             "product_name" : {}
+         }
+     }
+ }
+
+
+#Handling document relations using Nested 
+
+#Delete existing index
+DELETE chapter7
+ 
+#Set mappings
+PUT chapter7
+ {
+   "settings": {},
+   "mappings": {
+     "product": {
+       "properties": {
+         "product_name": {
+           "type": "text",
+           "copy_to": "product_suggest"
+         },
+         "variations": {
+           "type": "nested",
+           "properties": {
+             "type": {
+               "type": "keyword"
+             },
+             "value": {
+               "type": "keyword"
+             },
+             "unit_price": {
+               "type": "double"
+             }
+           }
+         },
+         "product_suggest": {
+           "type": "completion"
+         }
+       }
+     },
+     "product_review": {
+       "_parent": {
+         "type": "product"
+       },
+       "properties": {}
+     }
+   }
+ }
+
+PUT chapter7/product/1?refresh=true
+ {
+   "product_name": "iPhone 6",
+   "variations": [
+     {
+       "type": "storage",
+       "value": "16GB",
+       "unit_price": "600"
+     },
+     {
+       "type": "storage",
+       "value": "64GB",
+       "unit_price": "700"
+     }
+   ]
+ }
+ 
+ PUT chapter7/product/2?refresh=true
+ {
+   "product_name": "iPhone 7",
+   "variations": [
+     {
+       "type": "storage",
+       "value": "128GB",
+       "unit_price": "900"
+     }
+   ]
+ }
+
+#Nested Query (Query for iPhone with 128GB)
+ POST chapter7/product/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "term": {
+             "product_name": "iphone"
+           }
+         },
+         {
+           "nested": {
+             "path": "variations",
+             "query": {
+               "bool": {
+                 "must": [
+                   {
+                     "term": {
+                       "variations.type": "storage"
+                     }
+                   },
+                   {
+                     "term": {
+                       "variations.value": "128GB"
+                     }
+                   }
+                 ]
+               }
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+
+
+#Inner Hits
+POST chapter7/product/_search
+ {
+   "_source": false,
+   "query": {
+     "nested": {
+       "path": "variations",
+       "query": {
+         "bool": {
+           "must": [
+             {
+               "term": {
+                 "variations.type": "storage"
+               }
+             },
+             {
+               "term": {
+                 "variations.value": "64GB"
+               }
+             }
+           ]
+         }
+       },
+       "inner_hits": {}
+     }
+   }
+ }
+
+#Handling document relations using Parent-Child
+
+#Delete existing index
+DELETE chapter7
+ 
+ PUT chapter7
+ {
+   "settings": {},
+   "mappings": {
+     "product": {
+       "properties": {
+         "product_name": {
+           "type": "text",
+           "copy_to": "product_suggest"
+         },
+         "product_suggest": {
+           "type": "completion"
+         }
+       }
+     },
+     "product_review": {
+       "_parent": {
+         "type": "product"
+       },
+       "properties": {}
+     }
+   }
+ }
+
+#Parent Documents
+ PUT chapter7/product/1?refresh=true
+ {"product_name": "iPhone 6"}
+ PUT chapter7/product/2?refresh=true
+ {"product_name": "iPhone 7"}
+ PUT chapter7/product/3?refresh=true
+ {"product_name": "Samsung Galaxy S7"}
+ PUT chapter7/product/4?refresh=true
+ {"product_name": "Samsung Galaxy S6"}
+ 
+ #Child Documents
+ POST chapter7/product_review/?parent=1
+ {
+  "user_id" : "reviewer1",
+  "comment" : "One of the best phones in the market"
+ }
+
+ #Child Documents
+ POST chapter7/product_review/?parent=1
+ {"user_id" : "reviewer1", "comment" : "One of the best phones in the market"}
+
+
+#Has_Parent (Reviews for iphone)
+ POST chapter7/product_review/_search
+ {
+   "query" : {
+     "has_parent": {
+       "parent_type": "product",
+       "query": {
+         "term": {
+           "product_name": "iphone"
+         }
+       }
+     }
+   }
+ }
+
+
+#Has_Child Query
+
+#Has_Child (Products reviewed by user1)
+POST chapter7/product/_search
+ {
+   "query" : {
+     "has_child": {
+       "type": "product_review",
+       "query": {
+         "term": {
+           "user_id": "user1"
+         }
+       }
+     }
+   }
+ }
+
+
+
+#Inner Hits
+
+#Has_Child (Products reviewed by user1)
+POST chapter7/product/_search
+ {
+   "query": {
+     "has_child": {
+       "type": "product_review",
+       "query": {
+         "term": {
+           "user_id": "user1"
+         }
+       },
+       "inner_hits": {}
+     }
+   }
+ }
+
+
+#Reverse search using Percolator
+
+#Percolator
+ PUT chapter7/_mapping/label
+ {
+   "properties": {
+     "query": {
+       "type": "percolator"
+     }
+   }
+ }
+
+# No Variations
+ PUT chapter7/label/no_variations
+ {
+   "query": {
+     "script": {
+       "script": {
+         "inline": "!params._source.containsKey('variations')"
+       }
+     }
+   },
+   "metadata": {
+     "desc": "Product with no variations"
+   }
+ }
+ 
+ # Samsung
+ PUT chapter7/label/samsung_product
+ {
+   "query": {
+     "match": {
+       "product_name": "samsung"
+     }
+   },
+   "metadata": {
+     "desc": "Samsung Product"
+   }
+ }
+
+
+PUT /chapter7/product/4
+{
+  "product_name": "Samsung Galaxy S7"
+}
+
+
+GET chapter7/label/_search
+  {
+    "_source": false,
+    "query": {
+      "percolate": {
+        "field": "query",
+        "document_type": "product",
+        "index" : "chapter7",
+        "type" : "product",
+        "id" : 4
+      }
+    }
+  }
+
+
+#Scripting
+
+POST chapter7/product/_search
+ {
+   "query": {
+     "script": {
+       "script": {
+         "lang": "painless",
+         "inline": "params._source.containsKey('variations') && params._source.variations.length > 1"
+       }
+     }
+   }
+ }
+
+POST chapter7/product/_search
+ {
+   "query": {
+     "script": {
+       "script": {
+         "lang": "painless",
+         "inline": "params._source.containsKey('variations') && params._source.variations.length > params.num_of_variations",
+         "params": {
+           "num_of_variations": 1
+         }
+       }
+     }
+   }
+ }
+
+
+#Post Filter
+
+POST chapter7/product/_search
+ {
+   "query": {
+     "match": {
+       "product_name": "iphone"
+     }
+   },
+   "post_filter": {
+     "script": {
+       "script": {
+         "lang": "painless",
+         "inline": "params._source.containsKey('variations') && params._source.variations.length > params.num_of_variations",
+         "params": {
+           "num_of_variations": 1
+         }
+       }
+     }
+   }
+ }
+
+
+#Geo and Spatial Filtering
+
+# GEO
+ PUT chapter7/_mapping/store
+ {
+   "properties": {
+     "name": {
+       "type": "keyword"
+     },
+     "address": {
+       "type": "text"
+     },
+     "has_wifi" : {
+       "type" : "boolean"
+     },
+     "location": {
+       "type": "geo_point"
+     }
+   }
+ }
+
+#Index Stores
+PUT chapter7/store/1
+ {
+   "name" : "Store1",
+   "address" : "123 High Lane",
+   "has_wifi" : true,
+   "location" : {
+     "lat" : "37.339724",
+     "lon" : "-121.873848"
+   }
+ }
+ 
+ PUT chapter7/store/2
+ {
+   "name" : "Store2",
+   "address" : "124 High Lane",
+   "has_wifi" : true,
+   "location" : {
+     "lat" : "37.338495",
+     "lon" : "-121.880736"
+   }
+ }
+
+
+#Geo Distance
+POST chapter7/store/_search
+  {
+    "query": {
+      "geo_distance": {
+        "distance": "1mi",
+        "location": {
+          "lat": "37.348929",
+          "lon": "-121.888536"
+        }
+      }
+    }
+  }
+
+POST chapter7/store/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "term": {
+             "has_wifi": "true"
+           }
+         }
+       ],
+       "should": [
+         {
+           "geo_distance": {
+             "distance": "1mi",
+             "location": {
+               "lat": "37.348929",
+               "lon": "-121.888536"
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+
+#Geo bounding box
+
+#GEO Bounding Box 
+ POST chapter7/store/_search
+ {
+   "query": {
+     "geo_bounding_box": {
+       "location": {
+         "top_left": {
+           "lat": 37.340542,
+           "lon": -121.877904
+         },
+         "bottom_right": {
+           "lat": 37.339075,
+           "lon": -121.871295
+         }
+       }
+     }
+   }
+ }
+
+#Sorting
+
+#GEO Sort
+ POST chapter7/store/_search
+ {
+   "query": {
+     "match_all": {}
+   },
+   "sort": [
+     {
+       "_geo_distance": {
+         "location": {
+           "lat": "37.348929",
+           "lon": "-121.888536"
+         },
+         "order": "asc",
+         "unit" : "mi"
+       }
+     }
+   ]
+ }
+
+#Multi Search
+GET chapter7/_msearch
+{"type" : "product"}
+{"query" : {"match_all" : {}}, "from" : 0, "size" : 10}
+{"type" : "product_review"}
+{"query" : {"match_all" : {}}}
+
+
+#Multi Search
+GET chapter7/_msearch?max_concurrent_searches=1
+{"type" : "product"}
+{"query" : {"match_all" : {}}, "from" : 0, "size" : 10}
+{"type" : "product_review"}
+{"query" : {"match_all" : {}}}
+
+#Search Templates
+
+#Define Template
+ POST _search/template/find_product_by_name
+ {
+   "query" : {
+     "match" : {
+       "product_name": "{{ product_name }}"
+     }
+   }
+ }
+
+
+#Execute Template
+ POST chapter7/product/_search/template
+ {
+   "id" : "find_product_by_name",
+   "params" : {
+     "product_name" : "iphone"
+   }
+ }
+
+
+#Execute Template
+ POST chapter7/product/_search/template
+ {
+   "file" : "find_product_by_name",
+   "params" : {
+     "product_name" : "iphone"
+   }
+ }
+
+
+
+#Execute Template
+ POST chapter7/product/_search/template
+ {
+   "file" : "find_product_by_name",
+   "params" : {
+     "product_name" : "iphone",
+     "variation" : "128GB"
+   }
+ }
+

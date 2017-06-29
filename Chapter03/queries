@@ -1,0 +1,417 @@
+#Dynamic Mapping
+
+PUT chapter3/person/1
+ {
+   "name": "john",
+   "age": 100,
+   "date_of_birth": "1970/01/01"
+ }
+
+GET chapter3/person/_mapping
+
+PUT chapter3 
+{
+ "mappings": {
+    "news": {
+      "dynamic" : false,
+      "properties": {
+         "desc": {
+           "type": "text"
+         }
+       }
+     }
+   }
+}
+
+PUT chapter3/_mapping/news
+ {
+   "date_detection": false,
+   "properties": {
+     "source": {
+       "type": "text"
+     }
+   }
+ }
+
+#Create index with mapping
+
+#Delete existing index if any
+DELETE chapter3
+
+PUT chapter3
+ {
+   "mappings": {
+     "user": {
+       "properties": {
+         "age": {
+           "type": "integer"
+         },
+         "email": {
+           "type": "keyword"
+         },
+         "gender": {
+           "type": "keyword"
+         },
+         "id": {
+           "type": "integer"
+         },
+         "last_modified_date": {
+           "type": "date",
+           "format": "yyyy-MM-dd"
+         },
+         "name": {
+           "type": "keyword"
+         }
+       }
+     }
+   }
+ }
+
+#Adding a new type/field
+
+ PUT chapter3/_mapping/history
+ {
+   "properties": {
+     "username": {
+       "type": "keyword"
+     },
+     "login_date": {
+       "type": "date",
+       "format": "yyyy-MM-dd"
+     }
+   }
+ }
+
+PUT chapter3/_mapping/history
+ {
+   "properties": {
+     "id_address": {
+       "type": "ip"
+     }
+   }
+ }
+
+#Get existing mapping
+
+GET chapter3/_mapping
+
+GET chapter3/user/_mapping
+
+
+#How to handle null values
+
+PUT chapter3/_mapping/history
+ {
+   "properties": {
+     "username": {
+       "type": "keyword"
+     },
+     "login_date": {
+       "type": "date",
+       "format": "yyyy-MM-dd"
+     },
+     "login_status": {
+       "type": "keyword",
+       "null_value": "UNKNOWN"
+     }
+   }
+ }
+
+GET chapter3/history/_search?q=login_status:UNKNOWN
+
+#Storing the document source 
+
+PUT chapter3/_mapping/order
+ {
+   "_source": {
+     "enabled": false
+   },
+   "properties": {
+     "buyer": {
+       "type": "keyword"
+     },
+     "seller": {
+       "type": "keyword"
+     },
+     "itemtitle": {
+       "type": "text"
+     }
+   }
+ }
+
+
+#Searching all the fields in the document
+
+PUT chapter3/order/1
+ {
+   "buyer": "john",
+   "seller": "jake",
+   "item_title": "iphone",
+   "order_date": "2017-02-08"
+ }
+
+
+GET chapter3/order/_search?q=item_title:iphone
+
+GET chapter3/order/_search?q=iphone
+
+PUT chapter3/_mapping/order
+ {
+   "_all": {
+     "enabled": false
+   },
+   "properties": {
+     "buyer": {
+       "type": "keyword"
+     },
+     "seller": {
+       "type": "keyword"
+     },
+     "item_title": {
+       "type": "text"
+     }
+   }
+ }
+
+PUT chapter3/_mapping/order
+ {
+   "properties": {
+     "buyer": {
+       "type": "keyword",
+       "include_in_all": false
+     },
+     "seller": {
+       "type": "keyword",
+       "include_in_all": false
+     },
+     "item_title": {
+       "type": "text"
+     }
+   }
+ }
+
+#Analyzers
+
+select * from news where desc like '%yosemite%'
+
+GET _analyze?analyzer=english&text=It+will+be+raining+in+yosemite+this+weekend
+
+GET _analyze?analyzer=english&text=rain+in+yosemite
+
+PUT chapter3/_mapping/wea
+ {
+   "properties": {
+     "desc": {
+       "type": "text",
+       "analyzer": "english"
+     }
+   }
+ }
+
+#Core Data Types
+
+#Text
+
+
+PUT chapter3/_mapping/news
+ {
+   "properties": {
+     "description": {
+       "type": "text",
+       "analyzer": "english"
+     }
+   }
+ }
+
+#Keyword
+
+PUT chapter3/_mapping/user
+ {
+   "properties": {
+     "email": {
+       "type": "keyword"
+     }
+   }
+ }
+
+
+#Date
+
+PUT chapter3/_mapping/news
+ {
+   "properties": {
+     "creation_date": {
+       "type": "date",
+       "format": "yyyy-MM-dd"
+     }
+   }
+ }
+
+PUT chapter3/_mapping/news
+ {
+   "properties": {
+     "creation_date": {
+       "type": "date",
+       "format": "YYYY-mm-dd||YYYY-mm-dd HH:mm:ss"
+     }
+   }
+ }
+
+#Numeric
+
+PUT chapter3/_mapping/wea
+ {
+   "properties": {
+     "temperature": {
+       "type": "scaled_float",
+       "scaling_factor": "100"
+     }
+   }
+ }
+
+#Boolean 
+
+
+PUT chapter3/_mapping/boolean
+{
+   "properties": {
+     "boolean_field": {
+       "type": "boolean"
+     }
+   }
+ }
+
+#Binary
+
+PUT chapter3/_mapping/binary
+{
+   "properties": {
+     "binary_field": {
+       "type": "binary"
+     }
+   }
+ }
+
+#Geo Data Type
+
+PUT chapter3/_mapping/address
+ {
+   "properties": {
+     "geo_location": {
+       "type": "geo_point"
+     }
+   }
+ }
+
+ PUT chapter3/address/1
+ {
+   "street": "123 High Lane",
+   "city": "Big City",
+   "geo_location": {
+     "lat": 37.3,
+     "lon": 121.8
+   }
+ }
+
+
+#Specialized Data Type
+
+ PUT chapter3/_mapping/history
+ {
+   "properties": {
+     "ip_address": {
+       "type": "ip"
+     }
+   }
+ }
+
+#Document Relations
+
+PUT blog
+ {
+   "mappings": {
+     "article": { #Parent
+       "properties": {
+         "title": {
+           "type": "text"
+         },
+         "category": {
+           "type": "keyword"
+         }
+       }
+     },
+     "comment": { #Child
+       "_parent": {
+         "type": "article"
+       },
+       "properties": {
+         "comment": {
+           "type": "text"
+         },
+         "userid": {
+           "type": "keyword"
+         }
+       }
+     }
+   }
+ }
+
+PUT blog/article/1 
+{
+  "title" : "Hello world !!",
+  "category" : "Introduction"
+}
+
+PUT blog/comment/10?parent=1 
+{
+  "comment" : "This world is awesome",
+  "userid" : "user1"
+}
+
+POST blog/article/_search
+ {
+   "query": {
+     "has_child": {
+       "type": "comment",
+       "query": {
+         "term": {
+           "userid": "user1"
+         }
+       }
+     }
+   }
+ }
+
+
+#Routing
+
+ PUT chapter3/_mapping/order
+ {
+   "_routing": {
+     "required": true
+   },
+   "properties": {
+     "order_id": {
+       "type": "text"
+     },
+     "user_id": {
+       "type": "keyword"
+     },
+     "order_total": {
+       "type": "integer"
+     }
+   }
+ }
+
+
+PUT chapter3/order/1?routing=user1 
+ {
+   "order_id": "23y86",
+   "user_id": "user1",
+   "order_total": 15
+ }
+
+
+GET chapter3/order/1?routing=user1
+
+

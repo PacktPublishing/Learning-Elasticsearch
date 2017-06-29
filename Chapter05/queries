@@ -1,0 +1,614 @@
+#Bulk API 
+
+ POST /_bulk
+ { "create" : { "_index" : "chapter5", "_type" : "product", "_id" : "1"}}
+ { "product_name" : "Long Sleeve Shirt - White", "unit_price" : "30" }
+ { "index" : { "_index" : "chapter5", "_type" : "product", "_id" : "2"}}
+ { "product_name" : "Button down Shirt", "unit_price" : "40" }
+ { "create" : { "_index" : "chapter5", "_type" : "product", "_id" : "3"}}
+ { "product_name" : "Non-Iron Solid Shirt", "unit_price" : "40" }
+
+ POST chapter5/product/_bulk
+ { "update" : { "_id" : "1", "_retry_on_conflict" : 2 }}
+ { "doc" : { "shipping_price" : 7.0 } }
+ { "update" : { "_id" : "2", "_retry_on_conflict" : 2}}
+ { "doc" : { "shipping_price" : 6.5 } }
+ { "update" : { "_id" : "3", "_retry_on_conflict" : 2}}
+ { "doc" : { "shipping_price" : 5.0 } }
+
+
+ POST chapter5/product/_bulk
+ { "delete" : { "_id" : "1" } }
+ { "update" : { "_id" : "4", "_retry_on_conflict" : 2 }}
+ { "doc" : { "unit_price" : 39.99 } }
+
+PUT /chapter5/_settings
+ {
+   "index": {
+     "refresh_interval": "-1"
+   }
+ }
+
+
+#Multi Get API
+
+ POST chapter5/product/_mget
+ {
+   "ids" : ["2", "3"]
+ }
+
+
+POST _mget
+ {
+   "docs": [
+     {
+       "_index": "chapter5",
+       "_type": "product",
+       "_id": "2"
+     },
+     {
+       "_index": "chapter5",
+       "_type": "product",
+       "_id": "3"
+     }
+   ]
+ }
+
+POST _mget
+ {
+   "docs": [
+     {
+       "_index": "chapter5",
+       "_type": "product",
+       "_id": "2",
+       "_source": [
+         "product_name"
+       ]
+     },
+     {
+       "_index": "chapter5",
+       "_type": "product",
+       "_id": "3",
+       "_source": {
+         "exclude": "unit_price"
+       }
+     }
+   ]
+ }
+
+
+#Update by Query 
+
+ POST chapter5/_update_by_query
+ {
+   "script": {
+     "inline": "ctx._source.price_with_tax = ctx._source.unit_price * 1.1",
+     "lang": "painless"
+   },
+   "query": {
+     "match_all": {}
+   }
+ }
+
+ POST chapter5/_update_by_query?conflicts=proceed
+ {
+   "script": {
+     "inline": "ctx._source.price_with_tax = ctx._source.unit_price * 1.1",
+     "lang": "painless"
+   },
+   "query": {
+     "match_all": {}
+   }
+ }
+
+
+ POST chapter5/_update_by_query?wait_for_completion=false
+ {
+   "script": {
+     "inline": "ctx._source.price_with_tax = ctx._source.unit_price * 1.1",
+     "lang": "painless"
+   },
+   "query": {
+     "match_all": {}
+   }
+ }
+
+GET /_tasks/xZjyFE19Q0yGxehcys6ydg:307842
+
+
+POST /_tasks/xZjyFE19Q0yGxehcys6ydg:307842/_cancel
+
+#Delete by Query
+
+POST chapter5/_delete_by_query?conflicts=proceed
+ {
+   "query": {
+     "match": {
+       "product_name": "shirt"
+     }
+   }
+ }
+
+#Reindex API
+
+#Change mappings/settings
+
+POST _reindex
+ {
+   "source": {
+     "index": "source_index"
+   },
+   "dest": {
+     "index": "dest_index"
+   }
+ }
+
+#Combine document one or more indices 
+
+POST _reindex
+ {
+   "source": {
+     "index": [
+       "source_index_1",
+       "source_index_2"
+     ]
+   },
+   "dest": {
+     "index": "dest_index"
+   }
+ }
+
+#Copy only missing documents
+
+POST _reindex
+ {
+   "conflicts": "proceed",
+   "source": {
+     "index": "source_index"
+   },
+   "dest": {
+     "index": "dest_index",
+     "op_type": "create"
+   }
+ }
+
+#Copy a subset of documents into new index
+
+POST _reindex
+ {
+   "source": {
+     "index": "source_index_1",
+     "type": "log",
+     "query": {
+       "term": {
+         "level": "ERROR"
+       }
+     }
+   },
+   "dest": {
+     "index": "dest_index"
+   }
+ }
+
+#Copy top N documents
+
+POST _reindex
+ {
+   "size": 1000,
+   "source": {
+     "index": "source_index",
+     "sort": {
+       "timestamp": "desc"
+     }
+   },
+   "dest": {
+     "index": "dest_index"
+   }
+ }
+
+
+#Copy subset of fields into new index
+
+POST _reindex
+ {
+   "source": {
+     "index": [
+       "source_index_1"
+     ],
+     "_source": [
+       "field1",
+       "field2"
+     ]
+   },
+   "dest": {
+     "index": "dest_index"
+   }
+ }
+
+
+#Ingest Node
+
+
+PUT _ingest/pipeline/<pipeline-name>
+ {
+   "pipeline": {
+     "description": "pipeline-description",
+     "processors": []
+   }
+ }
+
+
+POST _ingest/pipeline/_simulate
+ {
+   "pipeline": {
+     "description": "Item View Pipeline",
+     "processors": [
+       {
+         "grok": {
+           "field": "log",
+           "patterns": [
+             "%{IP:client} %{TIMESTAMP_ISO8601:timestamp} %{WORD:country} %{NUMBER:itemId} %{WORD:platform}"
+           ]
+         }
+       }
+     ]
+   },
+   "docs": [
+     {
+       "_source": {
+         "log": "127.0.0.1 2017-04-11T09:02:34.234+07:00 USA 1 Web"
+       }
+     }
+   ]
+ }
+
+POST _ingest/pipeline/_simulate
+ {
+   "pipeline": {
+     "description": "Item View Pipeline",
+     "processors": [
+       {
+         "grok": {
+           "field": "log",
+           "patterns": [
+             "%{IP:client} %{TIMESTAMP_ISO8601:timestamp} %{WORD:country} %{NUMBER:itemId} %{WORD:platform}"
+           ]
+         }
+       },
+       {
+         "remove": {
+           "field": "log"
+         }
+       }
+     ]
+   },
+   "docs": [
+     {
+       "_source": {
+         "log": "127.0.0.1 2017-04-11T09:02:34.234+07:00 USA 1 Web"
+       }
+     }
+   ]
+ }
+
+
+POST _ingest/pipeline/_simulate
+ {
+   "pipeline": {
+     "description": "Item View Pipeline",
+     "processors": [
+       {
+         "grok": {
+           "field": "log",
+           "patterns": [
+             "%{IP:client} %{TIMESTAMP_ISO8601:timestamp} %{WORD:country} %{NUMBER:itemId} %{WORD:platform}"
+           ]
+         }
+       },
+       {
+         "remove": {
+           "field": "log"
+         }
+       },
+       {
+         "date_index_name": {
+           "field": "timestamp",
+           "index_name_prefix": "viewitem-",
+           "date_rounding": "M",
+           "index_name_format": "yyyy-MM"
+         }
+       }
+     ]
+   },
+   "docs": [
+     {
+       "_source": {
+         "log": "127.0.0.1 2017-04-11T09:02:34.234+07:00 USA 1 Web"
+       }
+     }
+   ]
+ }
+
+
+PUT _ingest/pipeline/view_item_pipeline
+ {
+   "description": "Item View Pipeline",
+   "processors": [
+     {
+       "grok": {
+         "field": "log",
+         "patterns": [
+           "%{IP:client} %{TIMESTAMP_ISO8601:timestamp} %{WORD:country} %{NUMBER:itemId} %{WORD:platform}"
+         ]
+       }
+     },
+     {
+       "remove": {
+         "field": "log"
+       }
+     },
+     {
+       "date_index_name": {
+         "field": "timestamp",
+         "index_name_prefix": "viewitem_",
+         "date_rounding": "M",
+         "index_name_format": "yyyy_MM"
+       }
+     }
+   ]
+ }
+
+POST chapter5/log/?pipeline=view_item_pipeline
+ {
+   "log": "127.0.0.1 2017-04-11T09:02:34.234+07:00 USA 1 Web "
+ }
+ 
+ POST chapter5/log/?pipeline=view_item_pipeline
+ {
+   "log": "127.0.0.1 2017-04-12T09:02:34.234+07:00 USA 2 Web "
+ }
+ 
+ 
+ POST chapter5/log/?pipeline=view_item_pipeline
+ {
+   "log": "127.0.0.1 2017-04-13T09:02:34.234+07:00 USA 3 Web "
+ }
+ 
+ 
+ POST chapter5/log/?pipeline=view_item_pipeline
+ {
+   "log": "127.0.0.1 2017-04-11T09:02:34.234+07:00 USA 1 Web "
+ }
+
+ POST viewitem_2017_04/_search
+ {
+   "size": 0, 
+   "aggs": {
+     "most_views_items": {
+       "terms": {
+         "field": "itemId.keyword",
+         "size": 5
+       }
+     }
+   }
+ }
+
+
+#Organizing your data
+
+#Index Alias
+
+POST /_aliases
+ {
+   "actions": [
+     {
+       "remove": {
+         "index": "index_with_date_as_string",
+         "alias": "application_logs"
+       }
+     },
+     {
+       "add": {
+         "index": "index_with_date_as_date",
+         "alias": "application_logs"
+       }
+     }
+   ]
+ }
+
+POST /_aliases
+ {
+   "actions": [
+     {
+       "add": {
+         "index": "index_with_date_as_string",
+         "alias": "application_logs"
+       }
+     }
+   ]
+ }
+
+GET /*/_alias/application_logs
+
+POST logs_04_17/log/
+ {
+   "level": "ERROR",
+   "application": "Service A",
+   "timestamp" : "2017-04-13T16:39:00-07:00",
+   "message": "Exception in thread java.lang.NullPointerException at chapter5.main(ServiceA.java:23)"
+ }
+
+POST /_aliases
+ {
+   "actions": [
+     {
+       "add": {
+         "index": "logs_04_17",
+         "alias": "logs_latest_error",
+         "filter": {
+           "match": {
+             "level": "ERROR"
+           }
+         }
+       }
+     }
+   ]
+ }
+
+POST logs_latest_error/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "match": {
+             "application": "Service A"
+           }
+         },
+         {
+           "range": {
+             "timestamp": {
+               "gte": "now-1h",
+               "time_zone": "-07:00"
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+#Index Templates
+
+ PUT _template/default_template
+ {
+   "template": "*",
+   "order": 0,
+   "settings": {
+     "number_of_shards": 1
+   }
+ }
+
+ POST logs_04_17/log/
+ {
+   "level": "ERROR",
+   "application": "Service A",
+   "timestamp" : "2017-04-13T16:39:00-07:00",
+   "message": "Exception in thread java.lang.NullPointerException at chapter5.main(ServiceA.java:23)"
+ }
+
+PUT _template/logs_template
+ {
+   "template": "logs*", 
+   "order": 1,
+   "settings": {
+     "number_of_shards": 3
+   },
+   "mappings": {
+     "log": {
+       "properties": {
+         "level": {
+           "type": "keyword"
+         },
+         "application": {
+           "type": "keyword"
+         },
+         "timestamp": {
+           "type": "date",
+           "format": "date_optional_time"
+         },
+         "message": {
+           "type": "text"
+         }
+       }
+     }
+   }
+ }
+
+ #Delete 
+ DELETE logs_04_17
+ 
+ #Index a document
+ POST logs_04_17/log/
+ {
+   "level": "ERROR",
+   "application": "Service A",
+   "timestamp" : "2017-04-13T16:39:00-07:00",
+   "message": "Exception in thread java.lang.NullPointerException at chapter5.main(ServiceA.java:23)"
+ }
+  
+ #Verify 
+ GET logs_04_17
+
+PUT _template/logs_template
+ {
+   "template": "logs*",
+   "order": 1,
+   "settings": {
+     "number_of_shards": 3
+   },
+   "aliases": {
+     "logs_last_2_months": {}
+   },
+   "mappings": {
+     "log": {
+       "properties": {
+         "level": {
+           "type": "keyword"
+         },
+         "application": {
+           "type": "keyword"
+         },
+         "timestamp": {
+           "type": "date",
+           "format": "date_optional_time"
+         },
+         "message": {
+           "type": "text"
+         }
+       }
+     }
+   }
+ }
+
+#Managing time-based indexes
+
+PUT _template/logs_template
+ {
+   "template": "log*",
+   "aliases": {
+     "logs_last_3_days": {}
+   }
+}
+
+POST /_aliases
+ {
+   "actions": [
+     {
+       "remove": {
+         "index": "log_2017_04_14",
+         "alias": "logs_last_3_days"
+       }
+     }
+   ]
+ }
+
+
+#Shrink API
+
+PUT /index_with_six_shards/_settings
+ {
+   "settings": {
+     "index.routing.allocation.require._name": "shrink_node_name",
+     "index.blocks.write": true
+   }
+ }
+
+
+POST index_with_six_shards/_shrink/index_with_one_shard
+ {
+   "settings": {
+     "index.number_of_replicas": 1,
+     "index.number_of_shards": 1
+   }
+ }

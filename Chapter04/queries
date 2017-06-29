@@ -1,0 +1,316 @@
+#Indexing your data
+
+ PUT chapter4/person/1
+ {
+   "id": 1,
+   "name": "user1",
+   "age": "55",
+   "gender": "M",
+   "email": "user1@gmail.com",
+   "last_modified_date": "2017-02-15"
+ }
+
+ 
+PUT chapter4/person/1?op_type=create
+{
+  "id": 1,
+  "name": "user1",
+  "age": "55",
+  "gender": "M",
+  "email": "user1@gmail.com",
+  "last_modified_date": "2017-02-15"
+}
+
+#Indexing errors 
+
+PUT chapter4/person/2
+ {
+   "id": 2,
+   "name": "user2",
+   "age": "55",
+   "gender": "M",
+   "email": "user2@gmail.com",
+   "last_modified_date": "2017-02-18"
+ }
+
+
+#Serialization/Mapping errors
+
+PUT chapter4/person/3
+ {
+   "id": 3,
+   "name": "user3",
+   "age": "one",
+   "gender": "M",
+   "email": "user3@gmail.com",
+   "last_modified_date": "2017-02-18"
+ }
+
+#Managing an index
+
+GET chapter4/_settings
+
+DELETE chapter4
+
+PUT chapter4 
+{
+ "settings": {
+   "index": {
+     "number_of_shards": "3",
+     "number_of_replicas": "1"
+    }
+  }
+}
+
+GET chapter4/_settings
+
+PUT chapter4/_settings 
+{
+ "index": {
+   "number_of_replicas": 2
+  }
+}
+
+ PUT chapter4/_mapping/product
+ {
+   "properties": {
+     "id": {
+       "type": "integer"
+     },
+     "name": {
+       "type": "text"
+     },
+     "age": {
+       "type": "integer"
+     },
+     "gender": {
+       "type": "keyword"
+     },
+     "email": {
+       "type": "keyword"
+     },
+     "last_modified_date": {
+       "type": "date"
+     }
+   }
+ } 
+
+PUT /chapter4
+ {
+   "settings": {
+     "index": {
+       "number_of_shards": "3",
+       "number_of_replicas": "1"
+     }
+   },
+   "mappings": {
+     "product": {
+       "properties": {
+         "id": {
+           "type": "integer"
+         },
+         "name": {
+           "type": "text"
+         },
+         "age": {
+           "type": "integer"
+         },
+         "gender": {
+           "type": "keyword"
+         },
+         "email": {
+           "type": "keyword"
+         },
+         "last_modified_date": {
+           "type": "date"
+         }
+       }
+     }
+   }
+ }
+
+
+#What happens when you index a document 
+
+DELETE chapter4
+
+PUT chapter4 
+{
+ "settings": {
+   "index": {
+     "number_of_shards": "2",
+     "number_of_replicas": "1"
+    }
+  }
+}
+
+ PUT chapter4/person/2
+ {
+   "id": 2,
+   "name": "user2",
+   "age": "55",
+   "gender": "M",
+   "email": "user2@gmail.com",
+   "last_modified_date": "2017-02-18"
+ }
+
+ PUT chapter4/person/3?refresh=true
+ {
+   "id": 3,
+   "name": "User3",
+   "age": "55",
+   "gender": "M",
+   "email": "user3@gmail.com",
+   "last_modified_date": "2017-02-15"
+ }
+
+
+POST chapter4/_refresh
+
+POST /_refresh
+
+ PUT chapter4/_settings
+ {
+   "index": {
+     "refresh_interval": "30s"
+   }
+ }
+
+
+#Updating your data
+
+PUT chapter4/person/1
+ {
+   "id": 1,
+   "name": "name update 1",
+   "age": 55,
+   "gender": "M",
+   "email": "user1@gmail.com",
+   "last_modified_date": "2017-02-15"
+ }
+
+#Partial Updates
+
+ POST chapter4/person/1/_update
+ {
+   "doc": {
+     "name": "name udpate 2"
+   }
+ }
+
+
+#Scripted  updates
+
+POST chapter4/person/1/_update 
+{
+  "script": "ctx._source.age+=1"
+}
+
+
+POST chapter4/person/1/_update
+ {
+   "script": {
+     "inline": "if (ctx._source.age > params.age) { ctx._source.person_type = 'adult' } else { ctx._source.person_type = 'teenager' }",
+     "params": {
+       "age": 19
+     }
+   }
+ }
+
+#Upsert
+
+ POST chapter4/person/3/_update
+ {
+   "doc": {
+     "name": "user3"
+   },
+   "doc_as_upsert": true
+ }
+
+#NOOP
+
+ POST chapter4/person/2/_update
+ {
+   "doc": {
+     "name": "name update 2"
+   },
+   "doc_as_upsert": true
+ }
+
+POST chapter4/person/2/_update 
+{ 
+  "doc" : {
+     "name" : "name update 2"
+  },
+  "detect_noop" : "false" 
+}
+
+#Concurrency
+
+POST chapter4/person/2/_update 
+{ 
+  "doc" : {
+     "name" : "name update 3"
+  } 
+}
+
+PUT chapter4/person/2?version=4 
+{
+ "id": 2,
+ "name": "name update 1",
+ "age": "55",
+ "gender": "M",
+ "email": "user2@gmail.com",
+ "last_modified_date" : "2017-02-18"
+}
+
+
+ POST chapter4/person/2/_update?retry_on_conflict=3 
+ {
+   "doc": {
+     "name": "name update 2"
+   }
+ }
+
+#Primary and Replica shards
+
+PUT http://node2:9200/chapter4/person/4 
+{
+ "id": 4,
+ "name": "user4",
+ "age": "55",
+ "gender": "M",
+ "email": "user4@gmail.com",
+ "last_modified_date" : "2017-02-20"
+}
+
+#Primary preference 
+
+ POST chapter4/person/_search?preference=_primary
+ {
+   "query": {
+     "match": {
+       "name": "user1"
+     }
+   }
+ }
+
+
+ POST chapter4/person/_search?preference=_primary_first 
+ {
+   "query": {
+     "match": {
+       "name": "user1"
+     }
+   }
+ }
+
+#Increase / Decrease number of replicas
+
+PUT chapter4/_settings 
+{
+  "index" : {
+    "number_of_replicas" : 0
+  }
+}
+

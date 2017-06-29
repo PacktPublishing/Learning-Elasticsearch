@@ -1,0 +1,21 @@
+#HTTP Client
+
+ POST es-index/_search
+ {
+   "query": {
+     "match_all": {}
+   }
+ }
+
+curl -XPOST http://127.0.0.1:9200/es-index/_search -d '{
+   "query": {
+     "match_all": {}
+   }
+ }'
+
+
+
+#Health of the cluster
+
+http://127.0.0.1:9200/_cluster/health?pretty
+

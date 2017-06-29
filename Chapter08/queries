@@ -1,0 +1,802 @@
+
+#Aggregation Basics
+select avg(rating) from Product group by category;
+
+#Sample Data
+
+#Delete existing index
+ DELETE chapter8
+ 
+ #Chapter 8 Mappings
+ PUT chapter8
+ {
+   "settings": {},
+   "mappings": {
+     "product": {
+       "properties": {
+         "product_name": {
+           "type": "text"
+         },
+         "manufacturer" : {
+           "type": "keyword"
+         },
+         "category" : {
+           "type": "keyword"
+         },
+         "products_sold" : {
+           "type": "integer"
+         },
+         "variations": {
+           "type": "nested",
+           "properties": {
+             "color": {
+               "type": "keyword"
+             },
+             "storage": {
+               "type": "keyword"
+             },
+             "unit_price": {
+               "type": "double"
+             }
+           }
+         }
+       }
+     },
+     "product_review": {
+       "_parent": {
+         "type": "product"
+       },
+       "properties": {}
+     }
+   }
+ }
+
+
+#Parent Documents
+ PUT chapter8/product/1?refresh=true
+ {
+   "product_name": "iPhone 6",
+   "manufacturer": "Apple",
+   "release_date": "2014-09-12",
+   "products_sold" : 25,
+   "category": "Cell Phones",
+   "variations": [
+     {
+       "color": "Gray",
+       "storage": "16GB",
+       "unit_price": "600"
+     }
+   ]
+ }
+ 
+ PUT chapter8/product/2?refresh=true
+ {
+   "product_name": "iPhone 7",
+   "manufacturer": "Apple",
+   "release_date": "2016-08-16",
+   "products_sold" : 36,
+   "category": "Cell Phones",
+   "variations": [
+     {
+       "color": "Rose Gold",
+       "storage": "128GB",
+       "unit_price": "900"
+     },
+     {
+       "color": "Rose Gold",
+       "storage": "64GB",
+       "unit_price": "800"
+     }
+   ]
+ }
+ 
+ PUT chapter8/product/3?refresh=true
+ {
+   "product_name": "Samsung Galaxy S8",
+   "manufacturer": "Samsung",
+   "release_date" : "2017-04-21",
+   "products_sold" : 10,
+   "category": "Cell Phones",
+   "variations": [
+     {
+       "color": "Gray",
+       "storage": "64GB",
+       "unit_price": "750"
+     }
+   ]
+ }
+  
+ PUT chapter8/product/4?refresh=true
+ {
+   "product_name": "Universal cellphone charger",
+   "manufacturer": "UniPower",
+   "release_date" : "2012-04-21",
+   "products_sold" : 10,
+   "category": "Cell Phones Accessories",
+   "variations": [
+     {
+       "unit_price": "15"
+     }
+   ]
+ }
+  
+ #Child Documents
+ POST chapter8/product_review/?parent=1
+ {
+   "user_id": "user1",
+   "comment": "One of 
+ }
+
+#Query Structure
+
+select count(*) from Product
+group by category; 
+
+POST chapter8/_search
+{
+ "aggs" :{
+   "category_products" : {
+     "terms" : {
+       "field" : "category"
+      }
+    }
+  }
+}
+
+select count(*) from Product
+where manufacturer = 'Samsung' 
+group by category2; 
+
+POST chapter8/_search
+ {
+   "query": {
+     "match": {
+       "manufacturer": "Samsung"
+     }
+   },
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category"
+       }
+     }
+   }
+ }
+
+POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category"
+       }
+     }
+   }
+ }
+
+
+#Multi-level Aggregations 
+
+select avg(products_sold) from Product 
+group by category; 
+
+POST chapter8/_search
+ {
+   "size" : 0,
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category"
+       },
+       "aggs": {
+         "products_sold": {
+           "avg": {
+             "field": "products_sold"
+           }
+         }
+       }
+     }
+   }
+ }
+
+POST chapter8/_search
+ {
+   "size": 0, 
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category"
+       },
+       "aggs": {
+         "manufacturer": {
+           "terms": {
+             "field": "manufacturer"
+           }
+         }
+       }
+     }
+   }
+ }
+
+#Types of Aggregations
+
+#Terms Aggregations (Group by)
+POST chapter8/_search
+ {
+   "size" : 0,
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category",
+         "size": 2
+       }
+     }
+   }
+ }
+
+#Order
+POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category",
+         "order": {
+           "_term": "asc"
+         }
+       }
+     }
+   }
+ }
+
+#Minimum document count
+POST chapter8/_search
+ {
+  "size": 0, 
+  "aggs" :{
+    "category_products" : {
+      "terms" : {
+        "field" : "category",
+        "min_doc_count": 5
+       }
+     }
+   }
+ }
+
+#Missing Values 
+POST chapter8/_search
+ {
+   "size" : 0,
+   "aggs": {
+     "category_products": {
+       "terms": {
+         "field": "category",
+         "missing": "Other”
+       }
+     }
+   }
+ }
+
+#Aggregations based on Filters
+
+#Based on Filters
+ POST chapter8/_search
+ {
+   "aggs": {
+     "category_products": {
+       "filters": {
+         "filters": {
+           "new_products": {
+             "range": {
+               "release_date": {
+                 "gte": "2016-01-01"
+               }
+             }
+           },
+           "old_products": {
+             "range": {
+               "release_date": {
+                 "lte": "2016-01-01"
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+ }
+
+#Aggs bases on Filters
+ POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "category_products": {
+       "filters": {
+         "o
+         "filters": {
+           "2016_Products": {
+             "range": {
+               "release_date": {
+                 "gte": "2016-01-01"
+               }
+             }
+           },
+           "2015_Products": {
+             "range": {
+               "release_date": {
+                 "gte": "2015-01-01",
+                 "lte": "2016-01-01"
+               }
+             }
+           }
+         }
+       },
+       "aggs": {
+         "products_sold": {
+           "avg": {
+             "field": "products_sold"
+           }
+         }
+       }
+     }
+   }
+ }
+
+
+#Aggregations on Dates ( Range, Histogram )
+
+#Date Range
+POST chapter8/_search
+ {
+   "aggs": {
+     "range": {
+       "date_range": {
+         "field": "release_date",
+         "ranges": [
+           {
+             "from": "2016-01-01",
+             "to": "now"
+           },
+           {
+             "from": "2015-01-01",
+             "to": "2016-01-01"
+           },
+           {
+             "to": "2015-01-01"
+           }
+         ]
+       }
+     }
+   }
+ }
+
+#Date Range with Time zone
+ POST chapter8/_search
+ {
+   "aggs": {
+     "range": {
+       "date_range": {
+         "field": "release_date",
+         "time_zone": "PST8PDT",
+         "ranges": [
+           {
+             "from": "2016-01-01",
+             "to": "now"
+           },
+           {
+             "from": "2015-01-01",
+             "to": "2016-01-01"
+           },
+           {
+             "to": "2015-01-01"
+           }
+         ]
+       }
+     }
+   }
+ }
+
+#Date Histogram
+ POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "product_release": {
+       "date_histogram": {
+         "field": "release_date",
+         "interval": "1y",
+         "format": "YYYY-MM-dd"
+       }
+     }
+   }
+ }
+
+
+#Aggregations on Numeric values ( Range, Histogram )
+
+#Aggs bases on Filters
+ POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "price_range": {
+       "range": {
+         "field": "products_sold",
+         "ranges": [
+           {
+             "to": "10"
+           },
+           {
+             "from": "10",
+             "to": "20"
+           },
+           {
+             "from": "20"
+           }
+         ]
+       }
+     }
+   }
+ }
+
+
+POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "products_sold": {
+       "range": {
+         "field": "products_sold",
+         "ranges": [
+           {
+             "key": "Low",
+             "to": "10"
+           },
+           {
+             "key": "Medium",
+             "from": "10",
+             "to": "20"
+           },
+           {
+             "key": "High",
+             "from": "20"
+           }
+         ]
+       }
+     }
+   }
+ }
+
+POST chapter8/_search
+ {
+   "size": 0,
+   "query": {
+     "match": {
+       "category": "Cell Phones"
+     }
+   },
+   "aggs": {
+     "products_sold": {
+       "histogram": {
+         "field": "products_sold",
+         "interval": 5
+       }
+     }
+   }
+ }
+
+POST chapter8/_search
+ {
+   "size": 0,
+   "query": {
+     "match": {
+       "category": "Cell Phones"
+     }
+   },
+   "aggs": {
+     "products_sold": {
+       "histogram": {
+         "field": "products_sold",
+         "interval": 10,
+         "extended_bounds": {
+           "min": "0",
+           "max": "50"
+         }
+       }
+     }
+   }
+ }
+
+
+#Aggregations on Geo Location ( Distance, Bounds )
+
+#Store Mapping
+ PUT chapter8/_mapping/store
+ {
+   "properties": {
+     "name": {
+       "type": "keyword"
+     },
+     "location": {
+       "type": "geo_point"
+     }
+   }
+ }
+
+#Index Stores
+ PUT chapter8/store/1
+ {
+   "name": "Store1",
+   "location": {
+     "lat": "37.339724",
+     "lon": "-121.873848"
+   }
+ }
+ 
+ PUT chapter8/store/2
+ {
+   "name": "Store2",
+   "location": {
+     "lat": "37.338495",
+     "lon": "-121.880736"
+   }
+ }
+
+
+#Geo Distance
+ POST chapter8/_search
+ {
+   "size": 0, 
+   "aggs": {
+     "distance": {
+       "geo_distance": {
+         "field": "location",
+         "origin": "37.3382, -121.8863",
+         "unit": "mi",
+         "ranges": [
+           {
+             "to": 5
+           },
+           {
+             "from": 5,
+             "to": 10
+           },
+           {
+             "from": 10
+           }
+         ]
+       }
+     }
+   }
+ }
+
+#Geo Bounds
+ POST chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "boundary": {
+       "geo_bounds": {
+         "field": "geo_location"
+       }
+     }
+   }
+ }
+
+
+ #Aggregations on Children 
+
+ PUT chapter8/product/3?refresh=true
+ {
+   "product_name": "Samsung Galaxy S8",
+   "manufacturer": "Samsung",
+   "variations": [
+     {
+       "color": "Gray",
+       "storage": "64GB",
+       "unit_price": "750"
+     }
+   ]
+ }
+ 
+ 
+ #Child Documents
+ POST chapter8/product_review/?parent=1
+ {
+   "user_id": "user1",
+   "comment": "One of 
+ }
+
+#Children Aggregation
+ GET /chapter8/_search
+ {
+   "size" : 0,
+   "aggs": {
+     "manufacturer": {
+       "terms": { 
+         "field": "manufacturer"
+       },
+       "aggs": {
+         "reviews": {
+           "children": { //Children Aggregation
+             "type": "product_review"
+           },
+           "aggs": {
+             "product_reviews": {
+               "value_count": { //Count 
+                 "field": "comment.keyword"
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+ }
+
+
+#Aggregations on Nested documents
+
+ PUT chapter8/product/2?refresh=true
+ {
+   "product_name": "iPhone 7",
+   "manufacturer": "Apple",
+   "variations": [
+     {
+       "color": "Rose Gold",
+       "storage": "128GB",
+       "unit_price": "900"
+     },
+     {
+       "color": "Rose Gold",
+       "storage": "64GB",
+       "unit_price": "800"
+     }
+   ]
+ }
+
+#Nested Aggregations
+ GET /chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "variations": {
+       "nested": {
+         "path": "variations"
+       },
+       "aggs": {
+         "by_color": {
+           "terms": {
+             "field": "variations.color"
+           },
+           "aggs": {
+             "by_storage": {
+               "terms": {
+                 "field": "variations.storage"
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+ }
+
+#Reverse Nested Aggregation
+
+PUT chapter8/product/2?refresh=true
+ {
+   "product_name": "iPhone 7",
+   "manufacturer": "Apple",
+   "variations": [
+     {
+       "color": "Rose Gold",
+       "storage": "128GB",
+       "unit_price": "900"
+     },
+     {
+       "color": "Rose Gold",
+       "storage": "64GB",
+       "unit_price": "800"
+     }
+   ]
+ }
+
+
+#Reverse Nested Aggregation
+ GET /chapter8/_search
+ {
+   "size": 0,
+   "aggs": {
+     "variations": {
+       "nested": {
+         "path": "variations"
+       },
+       "aggs": {
+         "by_color": { //First level
+           "terms": {
+             "field": "variations.color"
+           },
+           "aggs": {
+             "manufacturer": {
+               "reverse_nested": {}, // Parent
+               "aggs": {
+                 "product": {
+                   "terms": {
+                     "field": "manufacturer"
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+ }
+
+
+#Post Filter
+
+ #Silver Color Cell Phones
+ GET chapter8/_search
+ {
+   "query": {
+     "bool": {
+       "must": [
+         {
+           "match": {
+             "category": "Cell Phones"
+           }
+         },
+         {
+           "nested": {
+             "path": "variations",
+             "query": {
+               "match": {
+                 "variations.color": "Silver"
+               }
+             }
+           }
+         }
+       ]
+     }
+   }
+ }
+
+#Post Filter
+ GET chapter8/_search
+ {
+   "query": {
+     "match": {
+       "category": "Cell Phones"
+     }
+   },
+   "aggs": {
+     "variations": {
+       "nested": {
+         "path": "variations"
+       },
+       "aggs": {
+         "by_color": {
+           "terms": {
+             "field": "variations.color"
+           }
+         }
+       }
+     }
+   },
+   "post_filter": {
+     "nested": {
+       "path": "variations",
+       "query": {
+         "match": {
+           "variations.color": "Silver"
+         }
+       }
+     }
+   }
+ }

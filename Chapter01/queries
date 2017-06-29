@@ -1,0 +1,47 @@
+#Creating a document
+
+PUT http://localhost:9200/xyz/product/1
+{
+  "title": "Learning Elasticsearch",
+  "author": "Abhishek Andhavarapu",
+  "category": "books"
+}
+
+POST http://localhost:9200/xyz/product/
+{
+  "title": "Learning Elasticsearch",
+  "author": "Abhishek Andhavarapu",
+  "category": "books"
+}
+
+#Retrieving an existing document
+
+GET http://localhost:9200/xyz/product/1
+
+#Updating an existing document
+
+ POST http://localhost:9200/xyz/product/1/_update
+ {
+   "doc": {
+     "category": "technical books"
+   }
+ }
+
+#Delete an existing document
+
+DELETE http://localhost:9200/xyz/product/1
+
+#How does search work?
+
+select * from user where name like ‘%luke%’
+
+GET http://127.0.0.1:9200/esdemo/user/_search?q:name=luke
+
+POST http://127.0.0.1:9200/esdemo/user/_search 
+{
+   "query": {
+     "term": {
+       "name": "luke"
+     }
+   }
+ }
