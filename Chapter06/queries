@@ -1,29 +1,10 @@
-#Querying Elasticsearch
-POST chapter6/product/_search 
-{
-   "query": {
-     "term": {
-       "product_name" : "jeans"
-     }
-   }
- }
-
-POST chapter5,chapter6/product,product_reviews/_search 
-{
-   "query": {
-     "term": {
-       "product_name" : "jeans"
-     }
-   }
- }
-
 #Sample Data
 
 #Delete existing index if any
- DELETE chapter6
+DELETE chapter6
  
- #Mapping
- PUT chapter6
+#Mapping
+PUT chapter6
  {
    "settings": {},
    "mappings": {
@@ -43,8 +24,8 @@ POST chapter5,chapter6/product,product_reviews/_search
  }
 
 #Index Documents
- PUT chapter6/product/1
- {
+PUT chapter6/product/1
+{
    "product_name": "Men's High Performance Fleece Jacket",
    "description": "Best Value. All season fleece jacket",
    "unit_price": 79.99,
@@ -52,8 +33,8 @@ POST chapter5,chapter6/product,product_reviews/_search
    "release_date": "2016-08-16"
  } 
  
- PUT chapter6/product/2
- {
+PUT chapter6/product/2
+{
    "product_name": "Men's Water Resistant Jacket",
    "description": "Provides comfort during biking and hiking",
    "unit_price": 69.99,
@@ -61,8 +42,8 @@ POST chapter5,chapter6/product,product_reviews/_search
    "release_date": "2017-03-02"
  } 
  
- PUT chapter6/product/3
- {
+PUT chapter6/product/3
+{
    "product_name": "Women's wool Jacket",
    "description": "Helps you stay warm in winter",
    "unit_price": 59.99,
@@ -70,6 +51,24 @@ POST chapter5,chapter6/product,product_reviews/_search
    "release_date": "2016-12-15"
  }
 
+#Querying Elasticsearch
+POST chapter6/product/_search 
+{
+   "query": {
+     "term": {
+       "product_name" : "jeans"
+     }
+   }
+ }
+
+POST chapter5,chapter6/product,product_reviews/_search 
+{
+   "query": {
+     "term": {
+       "product_name" : "jeans"
+     }
+   }
+ }
 
 #Basic Query (Finding exact value)
 POST chapter6/product/_search 
